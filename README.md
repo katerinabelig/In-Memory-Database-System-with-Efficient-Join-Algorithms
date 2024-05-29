@@ -1,72 +1,14 @@
-# Partitioned-Hash-Join Part 2
-Κατερίνα Μπεληγιάννη Α.Μ. 1115201800126 <br />
-Σοφία Κατσαούνη Α.Μ.  1115201800070 <br />
-Σπύρος Κάντας Α.Μ. 1115201800059
-
-## Πως να κάνετε compile and execute:
+## compile and execute:
 cd src\
 cd main\ 
 make\
 ./program
 
-## Το πρόγραμμα
+## Project Structure
+The project is divided into two main parts:
 
-Parser:
-Το πρόγραμμα αρχικά διαβάζει τα αρχεία με τα Relation και τα αποθηκεύει
-στη δομή Joiner ως μια λίστα από Relation. Έπειτα διαβάζει τα Queries από
-αρχείο που του δίνεται και εκτελεί τα Join.
+## Part 1: Implementation of Equality Join Operator
+This part focuses on implementing the fundamental relational operator, the equality join. The implementation is designed to handle data stored in memory using columnar storage for efficiency. The objective is to create a join operation that can efficiently combine rows from two tables based on a common column.
 
-Ενδιάμεση δομή: UsedRelation
-  Για ενδιάμεση δομή έχουμε επιλέξει έναν πίνακα από πίνακες ακεραίων(MatchRow)
-  που ο καθένας έχει όσα στοιχεία είναι και οι σχέσεις στο query που εκτελείται.
-  (πχ αν συμμετέχουν 4 relations στο query, η αρχική δομή θα είναι: <br />
-  -1 -1 -1 -1 <br />
-  -1 -1 -1 -1 <br />
-  -1 -1 -1 -1 <br />
-  -1 -1 -1 -1 <br />
-  ...) <br />
-  Η πρώτη στήλη αναπαριστά το relation με index 0, η δεύτερη με index ένα etc.
-  Κάθε φορά που θέλουμε να κάνουμε ένα join, δημιουργούμε ένα RelCol το οποίο είναι
-  ένας πίνακας με Tuples όπου key=rowid, payload=value, από την αντίστοιχη στήλη του
-  στο usedRelations. Αφού τελειώσει το join, επιστρέφεται ένας πίνακας(Matches) από Tuples
-  και στην συνέχεια φιλτράρουμε τον πίνακα usedRelations και τον ανανεώνουμε.
-
-### Join και ανανέωση ενδιάμεσης δομής:
-  \* Μια στήλη ενός πίνακα προς join φορτώνεται στην ειδική δομή RelColumn
-   που είναι ένας πίνακας με Tuples όπου key=rowid, payload=value, δομή που
-   χρησιμοποιείται από την PartitionHashJoin.
-
-  - First Join: οι πίνακες προς join φορτώνονται\* από τις αρχικές σχέσεις και δίνονται στην
-   PartitionHashJoin. Τα αποτελέσματα που επιστρέφονται είναι tuple των 2 που κάθε tuple έχει το
-   ζευγάρι row id που ταίριαξε. Τα αποτελέσματα απλά εισχωρούνται στην ενδιάμεση δομή.
-
-  - Left/Right Join: η αριστερή/δεξιά σχέση υπάρχει στον ενδιάμεσο πίνακα όμως η άλλη όχι,
-   σε αυτή τη περίπτωση φορτώνεται\* ο πίνακας που υπάρχει στο πίνακα και ο άλλος φορτώνεται\* από
-   την αρχική σχέση. Τα αποτελέσματα είναι tuple όπως παραπάνω. Έπειτα γίνεται ανανέωση του ενδιάμεσου
-   πίνακα. Για κάθε τιμή του πίνακα στην ενδιάμεση δομή γίνεται έλεγχος για το αν υπάρχει στην αντίστοιχη
-   στήλη στα αποτελέσματα αν υπάρχει κρατείται και προστίθενται όλα τα αποτελέσματα με αυτή τη στήλη.
-   Αν δεν υπάρχει διαγράφεται η γραμμή αυτή της ενδιάμεσης δομής.
-
-  - Self/Filter Join: η σχέση φορτώνεται\* από την αρχική ή την ενδιάμεση αναλόγως αν υπάρχει. Σε αυτές
-   τις περιπτώσεις η διαφορά είναι ότι τα αποτελέσματα που επιστρέφει είναι μία στήλη(SingleCol). Η
-   ενδιάμεση δομή σκανάρεται και τα στοιχεία που υπάρχουν και στα αποτελέσματα μένουν ενώ τα άλλα διαγράφονται.
-
-
-### Joiner:
-  Η κλάση Joiner είναι υπεύθυνη για τη εκτέλεση πολλών join όπως τα ορίζει
-  το query, τα υλοποιεί χρησιμοποιώντας τη PartitionHashJoin (βλέπε Part 1)
-
-### Relation:
-  Η κλάση Relation φορτώνει και αποθηκεύει χαρακτηριστικά του πίνακα όπως size, αριθμό
-  στηλών και έναν πίνακα με τις στήλες του.
-
-### Parser:
-  Ο Parser είναι υπεύθυνος για την σάρωση ανάλυση και μετατροπή αρχείου με queries στις
-  αντίστοιχες ειδικές δομές Query, Predicates, Projection.
-
-  Disclaimer: 
-  Από τα queries που δίνονται στο small.work υπάρχουν κάποια που είτε δεν τρέχουν είτε θέλουν πολύ
-  χρόνο λόγω πολλών duplicates. Δεν προλάβαμε να υλοποιήσουμε chained δομή για duplicates στο hopscotch
-  για αυτό και τα έχουμε "φιλτράρει" ώστε να μην τρέξουν όπως φαίνεται στην γραμμή 21 της main και σταμα-
-  τήσει η ροή του προγράμματος.
-  Τα αποτελέσματα των άλλων queries βγαίνουν κανονικά
+## Part 2: Implementation of Join and Filter in Complex Queries
+The second part expands on the concepts from the first part by introducing complex query processing capabilities. This includes handling multiple tables with various columns, performing joins, and applying filters to the queries. The implementation is based on the query processing challenges from the SIGMOD 2018 programming competition.
